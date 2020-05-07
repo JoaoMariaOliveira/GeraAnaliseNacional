@@ -109,6 +109,20 @@ def load_OfferShock(sDirectoryInput, sFileDemandShock, sSheetName, nSectors, nAd
 
     return vLaborRestriction
 # ============================================================================================
+
+def load_GrupSector(sDirectoryInput, sFileInput, nGrupSectors, nSectors):
+    mSheet1=read_file_excel(sDirectoryInput, sFileInput, "SetorGrupo")
+    mSheet2=read_file_excel(sDirectoryInput, sFileInput, "Grupo18")
+    vNameGrupSector=[]
+    vCodGrupSector=np.zeros([nSectors], dtype=int)
+    for i in range(nSectors):
+        vCodGrupSector[i]=mSheet1.values[1+i, 3]
+
+    for i in range(nGrupSectors):
+        vNameGrupSector.append(mSheet2.values[1 + i, 1])
+
+    return vCodGrupSector, vNameGrupSector
+# ============================================================================================
 def load_NationalMIP(sDirectoryInput, sFileInput, sSheetName, nSector
                      , nLinIni, nColIni, nColsDemandNat, nLinExtra, nColExtra, nLinsTaxes, nLinsVA):
     mSheet=pd.read_excel(sDirectoryInput+sFileInput, sheet_name=sSheetName,  header =None)

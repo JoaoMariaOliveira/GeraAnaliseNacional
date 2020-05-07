@@ -130,6 +130,13 @@ lRelativAbsolut=True
 sFileSheetNat = 'Analise_Nacional_'+str(nYear)+'_'+str(nSectors)+sAdjustMargins+'.xlsx'
 sFileNameOutput = str(nYear)+'_'+str(nSectors)+sAdjustMargins+'.xlsx'
 
+def SectorAgregate(vCodGrupSector, vVariableIn, nSectors, sGrupSectors):
+    vVariableOut = np.zeros([1, nGrupSectors  ], dtype=float)
+    for sl in range(nSectors):
+            nLin = vCodGrupSector[sl]
+            vVariableOut[0, nLin] = vVariableOut[0, nLin] + vVariableIn[sl]
+
+    return vVariableOut
 
 if __name__ == '__main__':
     nBeginModel = time.perf_counter()
@@ -175,11 +182,6 @@ if __name__ == '__main__':
     sTimeIntermediate = time.localtime()
     print(time.strftime("%d/%b/%Y - %H:%M:%S", sTimeIntermediate), " - Calculating National Analisys")
     print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    ''' 
- 
-    '''
-
-
     sTimeIntermediate = time.localtime()
     print(time.strftime("%d/%b/%Y - %H:%M:%S", sTimeIntermediate), " - Calculating Shock")
     print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
@@ -197,6 +199,7 @@ if __name__ == '__main__':
     vVBPNat = vTotalProduction[0, :]
     mResults = np.zeros([3, 6], dtype=float)
     mResultSectors=np.zeros([3, nSectors], dtype=float)
+    mResultAggSectors=np.zeros([3, nGrupSectors], dtype=float)
 
     vVANat   = mVANat[nLinVA,:]
     vOccNat  = mVANat[nLinOccup,:]
@@ -250,6 +253,10 @@ if __name__ == '__main__':
     mResultSectors[1, :] = vV_VANat  * vDeltaShockDemand
     mResultSectors[2, :] = mResultSectors[1, :] / mResultSectors[0, :] * 100
 
+    mResultAggSectors[0,:]=SectorAgregate(vCodGrupSector, mResultSectors[0, :], nSectors, nGrupSectors)
+    mResultAggSectors[1,:]=SectorAgregate(vCodGrupSector, mResultSectors[1, :], nSectors, nGrupSectors)
+    mResultAggSectors[2, :] = mResultAggSectors[1, :] / mResultAggSectors[0, :] * 100
+
     vDataSheet = []
     vSheetName = []
     vRowsLabel = []
@@ -280,11 +287,17 @@ if __name__ == '__main__':
 
     vNameCols3a = ['VA', 'VA_Choque', 'Variação %']
     vDataSheet.append(mResultSectors.T)
-    vSheetName.append("Impact_VA")
+    vSheetName.append("Impact_VA_Sectors")
     vRowsLabel.append(vNameSector)
     vColsLabel.append(vNameCols3a)
     vUseHeader.append(True)
 
+    vNameCols3c = ['VA', 'VA_Choque', 'Variação %']
+    vDataSheet.append(mResultAggSectors.T)
+    vSheetName.append("Impact_VA_Agg_Sectors")
+    vRowsLabel.append(vNameGrupSector)
+    vColsLabel.append(vNameCols3c)
+    vUseHeader.append(True)
 
     vNameCols4 = ['VBP', 'PIB', 'EOB', 'RMB', 'Salários','Ocupações']
     vNameRows =  ['MIP', 'Impactos', 'Variação %']
