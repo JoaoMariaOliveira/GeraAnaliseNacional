@@ -126,6 +126,8 @@ nColFamilyConsum = 3
 
 sFileShock='Choque.xlsx'
 lRelativAbsolut=True
+lChockOfferDemand = 2 # 0 = demand ; 1 = Offer ;  2= both
+
 
 sFileSheetNat = 'Analise_Nacional_'+str(nYear)+'_'+str(nSectors)+sAdjustMargins+'.xlsx'
 sFileNameOutput = str(nYear)+'_'+str(nSectors)+sAdjustMargins+'.xlsx'
@@ -225,32 +227,59 @@ if __name__ == '__main__':
     vFinalDemandNorm=np.sum(mDemandNat, axis=1)
     vVBPNorm = np.dot(mLeontief, vFinalDemandNorm)
 
-    # Aplicando o choque da demanda
-    if lRelativAbsolut:
-        mDemandNatShock = mDemandNat * mDemandShock
-    else:
-        mDemandNatShock = mDemandNat + mDemandShock
-    # Calculando o VBP do choque
-    vFinalDemandShock=np.sum(mDemandNatShock, axis=1)
-    vVBPShockDemand = np.dot(mLeontief, vFinalDemandShock)
+    if (lChockOfferDemand== 0) or (lChockOfferDemand== 2):
+        # Aplicando o choque da demanda
+        if lRelativAbsolut:
+            mDemandNatShock = mDemandNat * mDemandShock
+        else:
+            mDemandNatShock = mDemandNat + mDemandShock
+        # Calculando o VBP do choque
+        vFinalDemandShock=np.sum(mDemandNatShock, axis=1)
+        vVBPShock = np.dot(mLeontief, vFinalDemandShock)
 
-    # Calculando o impacto do choque sobre o VBP
-    vDeltaShockDemand = vVBPShockDemand - vVBPNorm
-    vImpactVBP        = vDeltaShockDemand / vVBPNorm
+        # Calculando o impacto do choque sobre o VBP
+        vDeltaShock = vVBPShock - vVBPNorm
+        vImpactVBP        = vDeltaShock / vVBPNorm
+
+    if (lChockOfferDemand== 1) or (lChockOfferDemand== 2):
+        if lRelativAbsolut:
+            vLaborShock = vOccNat * vLaborRestriction
+        else:
+            vLaborShock = vOccNat + vLaborRestriction
+       # Calculando o VBP do choque
+        x = vLaborShock/vVBPNat
+        mABarr = np.zeros([nSectors, nSectors], dtype=float)
+        mZBarr = np.zeros([nSectors, nSectors], dtype=float)
+        for j in range(nSectors):
+            mZBarr[:, j] = mZ[:, j] * vLaborRestriction[j]
+            mABarr[:, j] = mZBarr[:, j] / vTotalProduction[0, j]
+
+        mLeontiefBarr = np.linalg.inv(mI - mABarr)
+        vVBPShock = np.dot(mLeontiefBarr, vFinalDemandNorm)
+
+        # Calculando o impacto do choque sobre o VBP
+        vDeltaShock = vVBPShock - vVBPNorm
+        vImpactVBP = vDeltaShock / vVBPNorm
+
+    if (lChockOfferDemand == 2):
+        vVBPShock = np.dot(mLeontiefBarr, vFinalDemandShock)
+        vDeltaShock = vVBPShock - vVBPNorm
+        vImpactVBP = vDeltaShock / vVBPNorm
+
 
     # CaLculando o impacto do choque
-    mResults[1, 0]   = np.sum(vDeltaShockDemand)
-    mResults[1, 1]   = np.sum(vV_VANat  * vDeltaShockDemand)
-    mResults[1, 2]   = np.sum(vV_EOBNat * vDeltaShockDemand)
-    mResults[1, 3]   = np.sum(vV_RMBNat * vDeltaShockDemand)
-    mResults[1, 4]   = np.sum(vV_WagesNat * vDeltaShockDemand)
-    mResults[1, 5]   = np.sum(vV_OccNat * vDeltaShockDemand)
+    mResults[1, 0]   = np.sum(vDeltaShock)
+    mResults[1, 1]   = np.sum(vV_VANat  * vDeltaShock)
+    mResults[1, 2]   = np.sum(vV_EOBNat * vDeltaShock)
+    mResults[1, 3]   = np.sum(vV_RMBNat * vDeltaShock)
+    mResults[1, 4]   = np.sum(vV_WagesNat * vDeltaShock)
+    mResults[1, 5]   = np.sum(vV_OccNat * vDeltaShock)
 
     mResults[2,:]    = mResults[1,:]  / mResults[0,:] * 100
 
-    mResults1= np.vstack((vVBPShockDemand, vVBPNorm, vDeltaShockDemand, vImpactVBP)).T
+    mResults1= np.vstack((vVBPShock, vVBPNorm, vDeltaShock, vImpactVBP)).T
 
-    mResultSectors[1, :] = vV_VANat  * vDeltaShockDemand
+    mResultSectors[1, :] = vV_VANat  * vDeltaShock
     mResultSectors[2, :] = mResultSectors[1, :] / mResultSectors[0, :] * 100
 
     mResultAggSectors[0,:]=SectorAgregate(vCodGrupSector, mResultSectors[0, :], nSectors, nGrupSectors)
