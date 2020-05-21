@@ -84,26 +84,27 @@ nColFinalDemand = nColsDemand - 2
 # sFileUses             - Arquivo de usos - Demanda
 # sFileResources        - Arquivo de recursos
 # sFileSheet - nome do arquivo de saida contendo as = tabelas
-#sFileInputNational ='MIPNAT_2013_guilhoto.xlsx'
-#nYear = 2013
-#sSheetNational='BR'
-#nColIni = 2
-#nLinIni = 3
-#nColsDemandNat = 6
-#nLinExtra = 25
-#nColExtra = 3
-#nLinsTaxes =7
-#nLinsVA = 15
-#nLinWages= 0
-#nLinTotalProduction = 13
-#nColFamilyConsum = 3
-#nLinEOBTotal = 6
-#nLinRMB = 7
-#nLinEOBPure = 8
-#nLinVA = 12
-#nLinOccup = 14
 
-nYear = 2017
+sFileInputNational ='MIPNAT_2013.xlsx'
+nYear = 2013
+sSheetNational='BR'
+nColIni = 2
+nLinIni = 3
+nColsDemandNat = 6
+nLinExtra = 25
+nColExtra = 3
+nLinsTaxes =7
+nLinsVA = 15
+nLinWages= 0
+nLinTotalProduction = 13
+nColFamilyConsum = 3
+nLinEOBTotal = 6
+nLinRMB = 7
+nLinEOBPure = 8
+nLinVA = 12
+nLinOccup = 14
+'''
+nYear = 2015
 sFileInputNational ='MIP_'+str(nYear)+'_68.xlsx'
 sSheetNational='MIP'
 nColIni = 1
@@ -122,11 +123,11 @@ nLinEOBPure = 9
 nLinVA = 0
 nLinOccup = 13
 nColFamilyConsum = 3
-
+'''
 
 sFileShock='Choque.xlsx'
 lRelativAbsolut=True
-lChockOfferDemand = 2 # 0 = demand ; 1 = Offer ;  2= both
+lChockOfferDemand = 0 # 0 = demand ; 1 = Offer ;  2= both
 
 
 sFileSheetNat = 'Analise_Nacional_'+str(nYear)+'_'+str(nSectors)+sAdjustMargins+'.xlsx'
@@ -199,7 +200,7 @@ if __name__ == '__main__':
 
     # Calculando os Coeficientes para avaliação do choque -  VA/Occ/EOB/RMB/Wages
     vVBPNat = vTotalProduction[0, :]
-    mResults = np.zeros([3, 6], dtype=float)
+    mResults = np.zeros([3, 7], dtype=float)
     mResultSectors=np.zeros([3, nSectors], dtype=float)
     mResultAggSectors=np.zeros([3, nGrupSectors], dtype=float)
 
@@ -208,16 +209,19 @@ if __name__ == '__main__':
     vEOBNat  = mVANat[nLinEOBPure,:]
     vRMBNat  = mVANat[nLinRMB,:]
     vWagesNat= mVANat[nLinWages,:]
+    vTaxesNat= np.sum(mTaxesNat, axis=0)
 
-    mResults[0, 0] =np.sum(vVBPNat)
-    mResults[0, 1] =np.sum(vVANat)
-    mResults[0, 2] =np.sum(vEOBNat)
-    mResults[0, 3] =np.sum(vRMBNat)
-    mResults[0, 4] =np.sum(vWagesNat)
-    mResults[0, 5] =np.sum(vOccNat)
+    mResults[0, 0] =np.sum(vVANat)
+    mResults[0, 1] =np.sum(vVBPNat)
+    mResults[0, 2] =np.sum(vTaxesNat)
+    mResults[0, 3] =np.sum(vEOBNat)
+    mResults[0, 4] =np.sum(vRMBNat)
+    mResults[0, 5] =np.sum(vWagesNat)
+    mResults[0, 6] =np.sum(vOccNat)
     mResultSectors[0,:] =np.copy(vVANat)
 
     vV_VANat  = vVANat / vVBPNat
+    vV_TaxesNat = vTaxesNat / vVBPNat
     vV_OccNat = vOccNat / vVBPNat
     vV_EOBNat = vEOBNat / vVBPNat
     vV_RMBNat = vRMBNat / vVBPNat
@@ -268,12 +272,14 @@ if __name__ == '__main__':
 
 
     # CaLculando o impacto do choque
-    mResults[1, 0]   = np.sum(vDeltaShock)
-    mResults[1, 1]   = np.sum(vV_VANat  * vDeltaShock)
-    mResults[1, 2]   = np.sum(vV_EOBNat * vDeltaShock)
-    mResults[1, 3]   = np.sum(vV_RMBNat * vDeltaShock)
-    mResults[1, 4]   = np.sum(vV_WagesNat * vDeltaShock)
-    mResults[1, 5]   = np.sum(vV_OccNat * vDeltaShock)
+
+    mResults[1, 0]   = np.sum(vV_VANat  * vDeltaShock)
+    mResults[1, 1]   = np.sum(vDeltaShock)
+    mResults[1, 2]   = np.sum(vV_TaxesNat  * vDeltaShock)
+    mResults[1, 3]   = np.sum(vV_EOBNat * vDeltaShock)
+    mResults[1, 4]   = np.sum(vV_RMBNat * vDeltaShock)
+    mResults[1, 5]   = np.sum(vV_WagesNat * vDeltaShock)
+    mResults[1, 6]   = np.sum(vV_OccNat * vDeltaShock)
 
     mResults[2,:]    = mResults[1,:]  / mResults[0,:] * 100
 
@@ -328,7 +334,7 @@ if __name__ == '__main__':
     vColsLabel.append(vNameCols3c)
     vUseHeader.append(True)
 
-    vNameCols4 = ['VBP', 'PIB', 'EOB', 'RMB', 'Salários','Ocupações']
+    vNameCols4 = ['PIB', 'VBP', 'Impostos', 'EOB', 'RMB', 'Salários','Ocupações']
     vNameRows =  ['MIP', 'Impactos', 'Variação %']
     vDataSheet.append(mResults)
     vSheetName.append("Impactos")
